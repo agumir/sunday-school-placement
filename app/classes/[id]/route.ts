@@ -13,10 +13,10 @@ interface ClassUpdateData {
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         if (!id || isNaN(parseInt(id))) {
             return NextResponse.json(
@@ -25,7 +25,6 @@ export async function DELETE(
             );
         }
 
-        // Check if class exists
         const classExists = await query(
             'SELECT id FROM classes WHERE id = $1',
             [id]
@@ -38,7 +37,6 @@ export async function DELETE(
             );
         }
 
-        // Check for active placements
         const placements = await query(
             'SELECT COUNT(*) as count FROM placements WHERE class_id = $1 AND status = $2',
             [id, 'Active']
@@ -73,10 +71,10 @@ export async function DELETE(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         if (!id || isNaN(parseInt(id))) {
             return NextResponse.json(

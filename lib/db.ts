@@ -30,11 +30,9 @@ export async function query(text: string, params?: any[]) {
 export async function getMembers() {
     const result = await query(`
         SELECT m.*, 
-               COUNT(DISTINCT p.class_id) as class_count,
-               STRING_AGG(DISTINCT c.class_name, ', ') as classes
+               COUNT(DISTINCT p.class_id) as class_count
         FROM members m
         LEFT JOIN placements p ON m.id = p.member_id AND p.status = 'Active'
-        LEFT JOIN classes c ON p.class_id = c.id
         GROUP BY m.id
         ORDER BY m.last_name, m.first_name
     `);

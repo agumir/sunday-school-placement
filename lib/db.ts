@@ -1,21 +1,33 @@
-import { sql } from '@vercel/postgres';
+import { Pool } from 'pg';
 
-interface QueryResult {
-    rows: any[];
-    rowCount: number;
+let pool: Pool | null = null;
+
+function getPool(): Pool {
+    if (!pool) {
+        pool = new Pool({
+            connectionString: process.env.POSTGRES_URL,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        });
+    }
+    return pool;
 }
 
-export async function query(text: string, params?: any[]): Promise<QueryResult> {
+export async function query(text: string, params?: any[]) {
     try {
-        const result = await sql.query(text, params);
-        return result;
+        const client = await getPool().connect();
+        try {
+            const result = await client.query(text, params);
+            return result;
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error('Database error:', error);
         throw error;
     }
 }
 
-export async function getMembers(): Promise<any[]> {
+export async function getMembers() {
     const result = await query(`
         SELECT m.*, 
                COUNT(DISTINCT p.class_id) as class_count,
@@ -29,7 +41,7 @@ export async function getMembers(): Promise<any[]> {
     return result.rows;
 }
 
-export async function getClasses(): Promise<any[]> {
+export async function getClasses() {
     const result = await query(`
         SELECT c.*,
                COUNT(DISTINCT p.member_id) as current_enrollment
@@ -41,7 +53,7 @@ export async function getClasses(): Promise<any[]> {
     return result.rows;
 }
 
-export async function getPlacements(): Promise<any[]> {
+export async function getPlacements() {
     const result = await query(`
         SELECT p.*,
                CONCAT(m.first_name, ' ', m.last_name) as member_name,
@@ -57,12 +69,12 @@ export async function getPlacements(): Promise<any[]> {
     return result.rows;
 }
 
-export async function getMemberById(id: number): Promise<any> {
+export async function getMemberById(id: number) {
     const result = await query('SELECT * FROM members WHERE id = $1', [id]);
     return result.rows[0];
 }
 
-export async function getClassById(id: number): Promise<any> {
+export async function getClassById(id: number) {
     const result = await query('SELECT * FROM classes WHERE id = $1', [id]);
     return result.rows[0];
 }
